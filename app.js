@@ -123,6 +123,7 @@ function processData(r, data) {
             var pos = d.CurrentSituation.Pos;
             var lap = d.CurrentSituation.Lap;
             var chrono = d.CurrentSituation.LapLocation;
+            var gap = d.GapWithFirst;
             var time = d.CurrentSituation.TotalTime;
             var gap = d.CurrentSituation.GapWithFirst
             var newLocation = false;
@@ -170,6 +171,7 @@ function processData(r, data) {
                 cell.html(pos);
                 cell.attr('pos',pos);
                 cell.attr('time',time);
+                cell.attr('gap',gap);
 
                 // remeber what columns to color
                 updatedChronos = (updatedChronos || []).concat([chrono]);
@@ -211,6 +213,9 @@ function processData(r, data) {
                 }
                 // color the row
                 updateRow(row);
+
+                $(cell).addClass('hand');
+                $(cell).bind('click',showDetails);
             }
         }
 
@@ -274,6 +279,31 @@ formatChrono = function (r,chrono) {
 }
 
 
+
+function showDetails() {
+    var raceTime = parseInt($(this).attr('time'));
+    var duration = parseInt($(this).attr('duration'));
+    var position = parseInt($(this).attr('pos'));
+    var gap = parseInt($(this).attr('gap'));
+    var riderName = $(this).parent().find('.rider').text();
+    var race = $(this).closest('table').attr('race');
+    var html = riderName + ' | <strong>Race time</strong> : ' + formatDuration(raceTime);
+
+    // lap and chrono
+    var classNames = $(this).attr('class');
+    var lap = classNames.split('l')[1].split(' ')[0];
+    var chrono = classNames.split('c')[2].split(' ')[0];
+    if (chrono == 0) { chrono = 'finish'} else {chrono = 'Intermediate ' + chrono};
+    html += ' | at ' + chrono + ' of lap ' + lap;
+    if (duration) {
+        html += ' | <strong>duration</strong> : ' + formatDuration(duration);
+    }
+    html += ' | <strong>position</strong> : ' + position;
+    html += ' | <strong>gap</strong> : ' + formatDuration(gap);
+
+
+    $('#detail_' + race).html(html);
+}
 
 
 function updateRow(row) {
@@ -343,13 +373,21 @@ function framework() {
     style.innerHTML += '.FINISHED { font-weight: bold }';
     // lap times
     style.innerHTML += '.lap { font-weight: bold; border-left: 1px solid #ccc; border-right: 1px solid #ccc }\r\n';
-    // align right
+    // pointer
+    style.innerHTML += '.hand { cursor: pointer }\r\n';
+
 
 
     style.innerHTML += '';
     document.head.appendChild(style);
 
-    $('body').html('<div id=app><div id="selectbar"></div><div id="statusbar"></div><div id="content"></div></div>');
+    $('body').html('<div id=app><div id="legend"></div><div id="statusbar"></div><div id="content"></div></div>');
+    $('#legend').html('<p>Colors green to red mark fast to slow duration.<br>' +
+        'green = within 1 second of the sections best time.<br>' +
+        'red = 9 seconds or more slower than the section best.<br>' + 
+        'purple is the section best.<br>' + 
+        'Purple underline is fastest lap. Green underline is personal best lap</p>');
+
 
     for (r in races) {
         var race = races[r];
@@ -364,9 +402,10 @@ function buildTable(id) {
     var race = races[id];
     var html = '<h3>'+race.name+'</h3>';
     var tableId = 'table_' + id;
-    html += '<table class="matrix" id="'+tableId+'">';
+    html += '<div id="detail_'+id+'"></div>';
+    html += '<table class="matrix" id="'+tableId+'" race="'+id+'">';
     // c0_0 is the first start-finish
-    var manyCells = '<td class="start"></td><td class="c0_0"></td>';
+    var manyCells = '<td class="start"></td><td class="c c0 l0"></td>';
     // 0_0, 1_1, 1_2, 1_3, ......, 1_0, 2_1, ....
     for (var l=1; l <= maxLaps; l++) {
         // laps
@@ -395,10 +434,10 @@ function buildTable(id) {
 
     // hide some cells
     for (var i=race.lastChrono + 1; i <= maxIntermediates; i++) {
-        $('.c' + i).hide();
+        $('#' + tableId + ' .c' + i).hide();
     }
     for (var i=race.lastLap + 1; i <= maxLaps; i++) {
-        $('.l' + i).hide();
+        $('#' + tableId + ' .l' + i).hide();
     }
 
     // fill the header
@@ -516,5 +555,4 @@ function formatDuration(milliseconds) {
       return `${minutes}:${formattedSeconds}`;
     }
   }
-
 
