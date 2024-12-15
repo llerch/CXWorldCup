@@ -19,6 +19,6 @@ https://raw.githubusercontent.com/mullummer/CXWorldCup/refs/heads/main/app.js
 You can close the console now
 
 Step 5:
-Wait 
+Wait. 
 The script will check for startlists. Startlists are available shortly before the start
 It will show the last data of finished races annd keep loading data of live races
