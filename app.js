@@ -3,6 +3,7 @@ var evt;
 var maxIntermediates = 12;
 var maxLaps = 11;
 var counter = 0;
+var colorgrade = 1000; // 1000 = 1000ms = 1 sec. i.e. every different seconds gap will give a different color 
 
 // get the event code from the href (e.g. 20221009_cro)
 var l = document.location.href;
@@ -254,7 +255,7 @@ formatChrono = function (r,chrono) {
     // color the gap to the record
     $('#table_' + r).find('.c' + chrono + '[duration]').each(function () {
         var duration = parseInt($(this).attr('duration'));
-        var gap = Math.floor((duration - record)/1000); // milliseconds
+        var gap = Math.floor((duration - record)/colorgrade); // milliseconds
         var bgcolor = '#f00';
         var color = '#000';
         switch(gap) {
