@@ -1,6 +1,10 @@
 # CXWorldCup
 CXWorldCup
 
+The script will show an alternative presentation of the live data.
+The idea is to remember previous data, so you can show the duration of the different sections.
+
+
 Step 1: 
 Go to https://prod.chronorace.be/angular/results.html#/uci/cro and go to the live timing of the race
 
