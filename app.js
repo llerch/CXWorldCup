@@ -281,7 +281,7 @@ formatChrono = function (r,chrono) {
 
 
 
-function showDetails() {
+showDetails = function showDetails() {
     var raceTime = parseInt($(this).attr('time'));
     var duration = parseInt($(this).attr('duration'));
     var position = parseInt($(this).attr('pos'));
@@ -294,6 +294,7 @@ function showDetails() {
     var classNames = $(this).attr('class');
     var lap = classNames.split('l')[1].split(' ')[0];
     var chrono = classNames.split('c')[2].split(' ')[0];
+    chronoInt = parseInt(chrono);
     if (chrono == 0) { chrono = 'finish'} else {chrono = 'Intermediate ' + chrono};
     html += ' | at ' + chrono + ' of lap ' + lap;
     if (duration) {
@@ -302,6 +303,7 @@ function showDetails() {
     html += ' | <strong>position</strong> : ' + position;
     html += ' | <strong>gap</strong> : ' + formatDuration(gap);
 
+    html += segmentLeaderBoard(race,chronoInt);
 
     $('#detail_' + race).html(html);
 }
@@ -376,6 +378,8 @@ function framework() {
     style.innerHTML += '.lap { font-weight: bold; border-left: 1px solid #ccc; border-right: 1px solid #ccc }\r\n';
     // pointer
     style.innerHTML += '.hand { cursor: pointer }\r\n';
+    // leaderboard
+    style.innerHTML += '.leaderboard { width: 800px }\r\n';
 
 
 
@@ -454,12 +458,89 @@ function buildTable(id) {
 
 
 function expandTable(r,chrono,lap) {
-    for (var l=1; l<=lap; l++) {
+    for (var l=1; l<=Math.max(lap,3); l++) {
         for (var c=0; c<=chrono; c++) {
             $('#table_' + r + ' .l' + l + '.c' + c).show();
         }
         $('#table_' + r + ' .lap.l' + l).show();
     }
+}
+
+segmentLeaderBoard = function (r,chrono,chronoFrom = false) {
+    var tableId = '#table_' + r;
+    var html = '';
+
+    var leaderBoard = [];
+
+    console.log(r);
+    console.log(chrono);
+    
+
+
+    $(tableId + ' .c.c' + chrono).each(function () {
+        var startTime;
+        var finishTime;
+        var duration;
+        var lap;
+        var rider;
+        var lapFrom;
+
+
+
+        // collect the durations
+        if ($(this).attr('time')) {
+            var classNames = $(this).attr('class');
+            lap = classNames.split('l')[1].split(' ')[0];
+            lapFrom = lap;
+
+
+            // get the starting Chrono
+            if (!chronoFrom) { 
+                if (chrono == 0) {
+                    chronoFrom = races[r].lastChrono;
+                } else {
+                    chronoFrom = chrono - 1;
+                }
+            };
+            if (chronoFrom == 0) lapFrom = lap - 1;
+
+            // check if the starting intermediate exists
+            var cell = $(this).parent().find('.l'+lapFrom + '.c' + chronoFrom);
+            if ($(cell).attr('time')) {
+                // start and finish has data
+                startTime = parseInt($(cell).attr('time'));
+                finishTime = parseInt($(this).attr('time'));
+                duration = finishTime - startTime;
+                rider = $(this).parent().find('.rider').text();
+
+                if (finishTime > startTime) {
+                    leaderBoard.push(
+                        {
+                            "duration" : duration,
+                            "startTime" : startTime,
+                            "finishTime" : finishTime,
+                            "lap" : lap,
+                            "rider" : rider
+                        }
+                    );
+                }
+            }
+        }
+    })
+    // order by duration 
+    if (leaderBoard.length > 0) {
+        leaderBoard.sort((a, b) => a.duration - b.duration);
+
+        html += '<br><br><h4>Segment leaderboard</h4><table class="leaderboard">'
+        for (var i=0; i <= Math.min(20,leaderBoard.length); i++) {
+            var row = leaderBoard[i];
+            html += '<tr><td>' + (i+1) + '</td><td>' + row.rider + '</td><td>lap ' + row.lap + '</td><td>' + formatDuration(row.duration) + '</td>';
+            html += '<td>(' + formatDuration(row.startTime) + ' -  ' + formatDuration(row.finishTime) + ')</td></tr>\r\n'
+        }
+        html += '</table><br><br>'
+
+    }
+    return html;
 }
 
 
