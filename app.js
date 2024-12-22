@@ -196,8 +196,10 @@ function processData(r, data) {
                 const prev = $(row).find('.l'+prevLap+'.c'+prevChrono);
                 // get duration
                 const prev_time = parseInt(prev.attr('time'));
+                const prev_gap = parseInt(prev.attr('gap'))
                 if (time > prev_time && prev_time > 0) {
                     cell.attr('duration',time - prev_time);
+                    cell.attr('gap_delta',gap - prev_gap);
                 }
     
     
@@ -232,7 +234,7 @@ function processData(r, data) {
 
     // mark the fastest lap(s)
     if (races[r].fastestLap > 0) {
-        $('#table_'+r+' .fastest]').removeClass('fastest');
+        $('#table_'+r+' .fastest').removeClass('fastest');
         $('#table_'+r+' .lap[duration='+races[r].fastestLap+']').addClass('fastest');
     }
 
@@ -287,6 +289,7 @@ showDetails = function showDetails() {
     var duration = parseInt($(this).attr('duration'));
     var position = parseInt($(this).attr('pos'));
     var gap = parseInt($(this).attr('gap'));
+    var prev_gap = parseInt($(this).attr('prev_gap'));
     var riderName = $(this).parent().find('.rider').text();
     var race = $(this).closest('table').attr('race');
     var html = riderName + ' | <strong>Race time</strong> : ' + formatDuration(raceTime);
@@ -303,7 +306,9 @@ showDetails = function showDetails() {
     }
     html += ' | <strong>position</strong> : ' + position;
     html += ' | <strong>gap</strong> : ' + formatDuration(gap);
-
+    if (prev_gap) {
+        html += '(' + (prev_gap < 0) ? '' : '+' + (Math.round(10 * prev_gap) / 10) + ')'
+    }
     html += segmentLeaderBoard(race,chronoInt);
 
     $('#detail_' + race).html(html);
@@ -496,8 +501,6 @@ segmentLeaderBoard = function (r,chrono,chronoFrom = false) {
         var rider;
         var lapFrom;
 
-
-
         // collect the durations
         if ($(this).attr('time')) {
             var classNames = $(this).attr('class');
@@ -543,7 +546,7 @@ segmentLeaderBoard = function (r,chrono,chronoFrom = false) {
         leaderBoard.sort((a, b) => a.duration - b.duration);
 
         html += '<br><br><h4>Segment leaderboard</h4><table class="leaderboard">'
-        for (var i=0; i <= Math.min(20,leaderBoard.length); i++) {
+        for (var i=0; i < Math.min(20,leaderBoard.length); i++) {
             var row = leaderBoard[i];
             html += '<tr><td>' + (i+1) + '</td><td>' + row.rider + '</td><td>lap ' + row.lap + '</td><td>' + formatDuration(row.duration) + '</td>';
             html += '<td>(' + formatDuration(row.startTime) + ' -  ' + formatDuration(row.finishTime) + ')</td></tr>\r\n'
