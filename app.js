@@ -289,7 +289,7 @@ showDetails = function showDetails() {
     var duration = parseInt($(this).attr('duration'));
     var position = parseInt($(this).attr('pos'));
     var gap = parseInt($(this).attr('gap'));
-    var prev_gap = parseInt($(this).attr('prev_gap'));
+    var gap_delta = parseInt($(this).attr('gap_delta'));
     var riderName = $(this).parent().find('.rider').text();
     var race = $(this).closest('table').attr('race');
     var html = riderName + ' | <strong>Race time</strong> : ' + formatDuration(raceTime);
@@ -306,8 +306,9 @@ showDetails = function showDetails() {
     }
     html += ' | <strong>position</strong> : ' + position;
     html += ' | <strong>gap</strong> : ' + formatDuration(gap);
-    if (prev_gap) {
-        html += '(' + (prev_gap < 0) ? '' : '+' + (Math.round(10 * prev_gap) / 10) + ')'
+    if (gap_delta) {
+        console.log('' + gap_delta);
+        html += ' (' + ((gap_delta < 0) ? '' : '+') + (Math.round(gap_delta/100) / 10) + ')'
     }
     html += segmentLeaderBoard(race,chronoInt);
 
