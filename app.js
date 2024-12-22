@@ -1,7 +1,7 @@
 var races = [];
 var evt;
-var maxIntermediates = 12;
-var maxLaps = 11;
+var maxIntermediates = 15;
+var maxLaps = 12;
 var counter = 0;
 var colorgrade = 1000; // 1000 = 1000ms = 1 sec. i.e. every different seconds gap will give a different color 
 
@@ -232,6 +232,7 @@ function processData(r, data) {
 
     // mark the fastest lap(s)
     if (races[r].fastestLap > 0) {
+        $('#table_'+r+' .fastest]').removeClass('fastest');
         $('#table_'+r+' .lap[duration='+races[r].fastestLap+']').addClass('fastest');
     }
 
@@ -358,8 +359,10 @@ function checkStartlist(r) {
 
 function framework() {
     var style = document.createElement('style');
-    style.innerHTML = '#app { padding: 5px; min-width: 5000px}';
+    style.innerHTML = '#app { padding: 5px; xxxmin-width: 5000px}';
     style.innerHTML += '.matrix td { font-size: 11px; padding-left: 2px; padding-right: 2px; border-bottom: 2px solid #eee; text-align: right }';
+    style.innerHTML += '.matrix { border-collapse: collapse; }';
+    
     // personal best
     style.innerHTML += '.matrix td.personal { border-bottom: 2px solid #00D800 }';
     // laps best
@@ -370,10 +373,11 @@ function framework() {
     style.innerHTML += '.matrix .intermediates_row td { border-bottom: 1px solid #555; text-align: right}';
     style.innerHTML += '.matrix .intermediates_row td.lap { background-color:#ddd }';
     // rider 
-    style.innerHTML += '.matrix td.rider { text-align: left}';
-    style.innerHTML += '.DNF { background-color: #f00; color: #fff}';
-    style.innerHTML += '.R80 { background-color: #444; color: #fff}';
-    style.innerHTML += '.FINISHED { font-weight: bold }';
+    style.innerHTML += '.matrix td.rider { text-align: left}\r\n';
+    style.innerHTML += '.matrix .DNF { background-color: #f00; color: #fff}\r\n';
+    style.innerHTML += '.matrix .R80 { background-color: #444; color: #fff}\r\n';
+    style.innerHTML += '.matrix .FINISHED { font-weight: bold }\r\n';
+    style.innerHTML += '.matrix tr:hover .rider { border-bottom-color: #000 }\r\n';
     // lap times
     style.innerHTML += '.lap { font-weight: bold; border-left: 1px solid #ccc; border-right: 1px solid #ccc }\r\n';
     // pointer
@@ -381,7 +385,13 @@ function framework() {
     // leaderboard
     style.innerHTML += '.leaderboard { width: 800px }\r\n';
 
-
+    // let's try to fix the first columns
+    style.innerHTML += '.d { background-color: #fff; white-space: nowrap; position: sticky; left: 0; z-index: 1; background-clip: padding-box;  }\r\n';
+    style.innerHTML += '.d:nth-child(1) { width: 150px; }\r\n';
+    style.innerHTML += '.d:nth-child(2) { width: 20px; left: 150px; }\r\n';
+    style.innerHTML += '.d:nth-child(3) { left: 170px; }\r\n';
+    style.innerHTML += '.tablecontainer { overflow: auto; max-width: 100%}\r\n';
+    style.innerHTML += '.matrix th { z-index: 2; position: sticky; top: 0; background: #e0e0e0;}\r\n';
 
     style.innerHTML += '';
     document.head.appendChild(style);
@@ -408,9 +418,10 @@ function buildTable(id) {
     var html = '<h3>'+race.name+'</h3>';
     var tableId = 'table_' + id;
     html += '<div id="detail_'+id+'"></div>';
+    html += '<div class="tablecontainer">'
     html += '<table class="matrix" id="'+tableId+'" race="'+id+'">';
     // c0_0 is the first start-finish
-    var manyCells = '<td class="start"></td><td class="c c0 l0"></td>';
+    var manyCells = '<td class="c c0 l0"></td>';
     // 0_0, 1_1, 1_2, 1_3, ......, 1_0, 2_1, ....
     for (var l=1; l <= maxLaps; l++) {
         // laps
@@ -424,17 +435,17 @@ function buildTable(id) {
         manyCells += '<td class="lap l' + l + '"></td>';
     }
     html += '<thead>';
-    html += '<tr class="intermediates_row"><td>Intermediates</td><td></td><td></td>' + manyCells + '</tr>';
+    html += '<tr class="intermediates_row"><td class="d"></td><td class="d"></td><td class="d"></td>' + manyCells + '</tr>';
     html += '</thead>';
     html += '<tbody>';
     var riders = races[id].riders;
     for (riderIndex in riders) {
         html += '<tr class="data_row" id="r'+riders[riderIndex].Dossard+'">';
-        html += '<td class="rider">'+riders[riderIndex].Nom+'</td><td class="pos"></td><td class="gap"></td>';
+        html += '<td class="rider d">'+riders[riderIndex].Nom+'</td><td class="pos d"></td><td class="gap d"></td>';
         html += manyCells;
         html += '</tr>';
     }
-    html += '</tbody>';
+    html += '</table></div>';
     $('#content').append(html);
 
     // hide some cells
