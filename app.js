@@ -600,8 +600,11 @@ function sortTable(table, columnIndex) {
   
     // Sort rows based on the specified column (convert cell content to a number)
     rowsArray.sort((rowA, rowB) => {
-      const cellA = parseInt(rowA.cells[columnIndex].textContent, 10);
-      const cellB = parseInt(rowB.cells[columnIndex].textContent, 10);
+      var cellA = parseInt(rowA.cells[columnIndex].textContent, 10);
+      var cellB = parseInt(rowB.cells[columnIndex].textContent, 10);
+      // DNS / DNF
+      if (!cellA) {cellA = 999};
+      if (!cellB) {cellB = 999};
       return cellA - cellB;
     });
   
