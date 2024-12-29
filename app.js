@@ -1,6 +1,6 @@
 var races = [];
 var evt;
-var maxIntermediates = 15;
+var maxChronos = 15;
 var maxLaps = 12;
 var counter = 0;
 var colorgrade = 1000; // 1000 = 1000ms = 1 sec. i.e. every different seconds gap will give a different color 
@@ -35,6 +35,7 @@ function init() {
         races[r].fastestLap = 0;
         races[r].lastLap = 3;
         races[r].lastChrono = 5;
+        races[r].chronos = [];
     }
 
 
@@ -47,7 +48,7 @@ function startListening() {
     setInterval(function () {
         for (var r in races) {
             var race = races[r];
-            log('Checking status for ' + r + ' - ' + race.name + ' - ' + race.status);
+            //log('Checking status for ' + r + ' - ' + race.name + ' - ' + race.status);
             switch(race.status) {
                 case '':
                     // start status, get the startlist first
@@ -176,41 +177,36 @@ function processData(r, data) {
 
                 // remeber what columns to color
                 updatedChronos = (updatedChronos || []).concat([chrono]);
-
+                // mark chrono as active
+                races[r].chronos[chrono] = true;
     
                 // previous cell & duration
-                var prevChrono;
-                var prevLap;
-                if (chrono == 0) {
-                    // 0 is the last cell of the lap (finish)
-                    prevLap = lap;
-                    prevChrono = race.lastChrono;
-                } else if (chrono == 1) {
-                    // first intermediate
-                    prevLap = lap - 1;
-                    prevChrono = 0;
-                } else {
-                    prevLap = lap;
-                    prevChrono = chrono - 1;
-                }
-                const prev = $(row).find('.l'+prevLap+'.c'+prevChrono);
+                const previous = getPrevious(r,lap,chrono);
+                prevLap = previous.lap;
+                prevChrono = previous.chrono;
+                const previousCell = $(row).find('.l'+prevLap+'.c'+prevChrono);
                 // get duration
-                const prev_time = parseInt(prev.attr('time'));
-                const prev_gap = parseInt(prev.attr('gap'))
+                const prev_time = parseInt(previousCell.attr('time'));
+                const prev_gap = parseInt(previousCell.attr('gap'))
                 if (time > prev_time && prev_time > 0) {
                     cell.attr('duration',time - prev_time);
                     cell.attr('gap_delta',gap - prev_gap);
                 }
     
-    
                 // laptimes
-                if (d.LapTimes && d.LapTimes.length > 1) {
-                    for (var l=1; l<d.LapTimes.length; l++) {
+                if (d.LapTimes) {
+                    var lapCounter = 1;
+                    for (var l=0; l<d.LapTimes.length; l++) {
                         var lapTime = d.LapTimes[l];
-                        $(row).find('.lap.l' + l).html(formatDuration(lapTime));
-                        $(row).find('.lap.l' + l).attr('duration',lapTime);
-                        if (lapTime < races[r].fastestLap || races[r].fastestLap == 0) {
-                            races[r].fastestLap = lapTime;
+                        // sometimes the "laptime" between the start and first start-finish passage is added
+                        // ignore laptime < 120 seconds
+                        if (lapTime > 120000) {
+                            $(row).find('.lap.l' + lapCounter).html(formatDuration(lapTime));
+                            $(row).find('.lap.l' + lapCounter).attr('duration',lapTime);
+                            if (lapTime < races[r].fastestLap || races[r].fastestLap == 0) {
+                                races[r].fastestLap = lapTime;
+                            }
+                            lapCounter++;
                         }
                     }
                 }
@@ -431,7 +427,7 @@ function buildTable(id) {
     // 0_0, 1_1, 1_2, 1_3, ......, 1_0, 2_1, ....
     for (var l=1; l <= maxLaps; l++) {
         // laps
-        for (var c=1; c <= maxIntermediates; c++) {
+        for (var c=1; c <= maxChronos; c++) {
             // intermediates
             manyCells += '<td class="c l' + l + ' c' + c + '"></td>';
         }
@@ -455,7 +451,7 @@ function buildTable(id) {
     $('#content').append(html);
 
     // hide some cells
-    for (var i=race.lastChrono + 1; i <= maxIntermediates; i++) {
+    for (var i=race.lastChrono + 1; i <= maxChronos; i++) {
         $('#' + tableId + ' .c' + i).hide();
     }
     for (var i=race.lastLap + 1; i <= maxLaps; i++) {
@@ -467,12 +463,65 @@ function buildTable(id) {
         $('#' + tableId + ' .intermediates_row .lap.l' + l).html('lap ' + l);
     }
     $('#' + tableId + ' .intermediates_row .c0').html('F');
-    for (var c=1; c <= maxIntermediates; c++) {
+    for (var c=1; c <= maxChronos; c++) {
         $('#' + tableId + ' .intermediates_row .c' + c).html(c);
     }
 }
 
 
+cellInfo = function (cell) {
+    // cell info from onclick
+    var result = {};
+
+    // get selected cell info
+    const classNames = $(cell).attr('class');
+    result.lap = parseInt(classNames.split('l')[1].split(' ')[0]);
+    result.chrono = parseInt(classNames.split('c')[2].split(' ')[0]);
+    result.raceId = $(this).closest('table').attr('race');
+
+    return result;
+}
+
+
+getPrevious = function (raceId, lap, chrono) {
+    const race = races[raceId];
+    var result = {};
+
+    // find the previous cell
+    // intermediates can be offline. For example intermediates 3 and 5 may not be functioning, we'll try to ignore them
+    // Current, StartFinish and lastIntermediate are assumed active
+    // An intermediate may be active, but data still may be missing
+    var found = false;
+    var prevLap = lap;
+    var prevChrono = chrono;
+    var counter = 0;
+
+    while (!found && counter <= 2 && (prevLap > 0 || prevChrono > 0)) {
+        if (prevChrono == 0) {
+            // start-finish
+            prevChrono = race.lastChrono;
+            found = true;
+        } else if (prevChrono == 1) {
+            prevChrono--;
+            prevLap--;
+            found = true;
+        } else {
+            prevChrono--;
+        }
+
+        if (race.chronos[prevChrono]) {
+            // the chrono is active
+            found = true;
+        }
+        counter++;
+    }
+
+    result.lap = prevLap;
+    result.chrono = prevChrono;
+
+    return result;
+
+}
 
 function expandTable(r,chrono,lap) {
     for (var l=1; l<=Math.max(lap,3); l++) {
@@ -484,15 +533,15 @@ function expandTable(r,chrono,lap) {
 }
 
 segmentLeaderBoard = function (r,chrono,chronoFrom = false) {
-    var tableId = '#table_' + r;
+    const tableId = '#table_' + r;
     var html = '';
 
     var leaderBoard = [];
 
-    console.log(r);
-    console.log(chrono);
-    
-
+    if (!chronoFrom) { 
+        const previous = getPrevious(r,1,chrono);
+        chronoFrom = previous.chrono;
+    }
 
     $(tableId + ' .c.c' + chrono).each(function () {
         var startTime;
@@ -504,20 +553,12 @@ segmentLeaderBoard = function (r,chrono,chronoFrom = false) {
 
         // collect the durations
         if ($(this).attr('time')) {
-            var classNames = $(this).attr('class');
-            lap = classNames.split('l')[1].split(' ')[0];
+            var info = cellInfo(this);
+
+            lap = info.lap;
             lapFrom = lap;
-
-
-            // get the starting Chrono
-            if (!chronoFrom) { 
-                if (chrono == 0) {
-                    chronoFrom = races[r].lastChrono;
-                } else {
-                    chronoFrom = chrono - 1;
-                }
-            };
             if (chronoFrom == 0) lapFrom = lap - 1;
+
 
             // check if the starting intermediate exists
             var cell = $(this).parent().find('.l'+lapFrom + '.c' + chronoFrom);
@@ -542,18 +583,18 @@ segmentLeaderBoard = function (r,chrono,chronoFrom = false) {
             }
         }
     })
-    // order by duration 
     if (leaderBoard.length > 0) {
+
+        // order by duration   
         leaderBoard.sort((a, b) => a.duration - b.duration);
 
-        html += '<br><br><h4>Segment leaderboard</h4><table class="leaderboard">'
+        html += '<br><br><h4>Segment leaderboard [chrono ' + ((chronoFrom == 0) ? 'start' : chronoFrom) + ' - ' + ((chrono == 0) ? 'finish' : chrono) +']</h4><table class="leaderboard">'
         for (var i=0; i < Math.min(20,leaderBoard.length); i++) {
             var row = leaderBoard[i];
-            html += '<tr><td>' + (i+1) + '</td><td>' + row.rider + '</td><td>lap ' + row.lap + '</td><td>' + formatDuration(row.duration) + '</td>';
+            html += '<tr><td>' + (i+1) + '</td><td>' + row.rider + '</td><td>lap ' + row.lap + '</td><td>' + formatDuration(row.duration,true) + '</td>';
             html += '<td>(' + formatDuration(row.startTime) + ' -  ' + formatDuration(row.finishTime) + ')</td></tr>\r\n'
         }
         html += '</table><br><br>'
-
     }
     return html;
 }
@@ -631,7 +672,7 @@ function getCurrentTime() {
     return `${hours}:${minutes}:${seconds}`;
 }
 
-function formatDuration(milliseconds) {
+function formatDuration(milliseconds, showTenths = false) {
     // Calculate total seconds, minutes, and hours
     const totalSeconds = Math.floor(milliseconds / 1000);
     const tenths = Math.floor((milliseconds % 1000) / 100); // Tenths of a second
@@ -645,14 +686,20 @@ function formatDuration(milliseconds) {
   
     // Return the formatted string based on duration
     if (hours > 0) {
-      // Include leading zeros for minutes and seconds when hours are present
-      const formattedMinutes = String(minutes).padStart(2, '0');
-//      return `${hours}:${formattedMinutes}:${formattedSeconds}.${formattedTenths}`;
-      return `${hours}:${formattedMinutes}:${formattedSeconds}`;
-} else {
+        // Include leading zeros for minutes and seconds when hours are present
+        const formattedMinutes = String(minutes).padStart(2, '0');
+        if (showTenths) {
+            return `${hours}:${formattedMinutes}:${formattedSeconds}.${formattedTenths}`;
+        } else {
+            return `${hours}:${formattedMinutes}:${formattedSeconds}`;
+        }
+    } else {
       // No leading zero for minutes when less than an hour
-//      return `${minutes}:${formattedSeconds}.${formattedTenths}`;
-      return `${minutes}:${formattedSeconds}`;
+      if (showTenths) {
+        return `${minutes}:${formattedSeconds}.${formattedTenths}`;
+      } else {
+        return `${minutes}:${formattedSeconds}`;
+      }
     }
   }
 
