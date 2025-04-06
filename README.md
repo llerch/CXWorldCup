@@ -7,6 +7,7 @@ The idea is to remember previous data, so you can show the duration of the diffe
 
 Step 1: 
 Go to https://prod.chronorace.be/angular/results.html#/uci/cro and go to the live timing of the race
+(or https://prod.chronorace.be/angular/results.html#/uci/mtb for MTB)
 
 Step 2:
 Click one on of menu's above, for example "Women Elite". 
