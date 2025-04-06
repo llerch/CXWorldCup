@@ -1,6 +1,6 @@
 var races = [];
 var evt;
-var maxChronos = 15;
+var maxChronos = 25;
 var maxLaps = 12;
 var counter = 0;
 var colorgrade = 1000; // 1000 = 1000ms = 1 sec. i.e. every different seconds gap will give a different color 
