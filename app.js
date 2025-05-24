@@ -192,7 +192,15 @@ function processData(r, data) {
                     cell.attr('duration',time - prev_time);
                     cell.attr('gap_delta',gap - prev_gap);
                 }
-    
+                // Display the section duration instead of position
+                var sectionDuration = parseInt(cell.attr('duration')) || 0;
+                if (sectionDuration > 0) {
+                    cell.html(formatDuration(sectionDuration, true));
+                } else {
+                    // If we do not yet have a duration (e.g. first chrono), show '-'
+                    cell.html('-');
+                }
+
                 // laptimes
                 if (d.LapTimes) {
                     var lapCounter = 1;
@@ -702,4 +710,3 @@ function formatDuration(milliseconds, showTenths = false) {
       }
     }
   }
-
