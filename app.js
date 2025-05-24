@@ -5,6 +5,49 @@ var maxLaps = 12;
 var counter = 0;
 var colorgrade = 1000; // 1000 = 1000ms = 1 sec. i.e. every different seconds gap will give a different color 
 
+
+
+function downloadCSV(csv, filename){
+    const csvWithBOM = '\uFEFF' + csv;
+    const blob = new Blob([csvWithBOM], {type: 'text/csv;charset=utf-8;'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+}
+
+function tableToCSV($table){
+    const rows = [];
+    $table.find('tr').each(function(){
+        const cols = [];
+        $(this).find('th,td').each(function(){
+            // escape quotes
+            cols.push('"' + $(this).text().replace(/"/g,'""') + '"');
+        });
+        rows.push(cols.join(','));
+    });
+    return rows.join('\n');
+}
+
+function exportAllTables(){
+    const parts = [];
+    $('table[id^="table_"]').each(function(){
+        const title = $(this).closest('.panel').find('h2').text();
+        parts.push('"' + title.replace(/"/g,'""') + '"');
+        parts.push(tableToCSV($(this)));
+        parts.push('');                 // blank line between tables
+    });
+    const csv = parts.join('\n');
+    downloadCSV(csv, 'chronorace_'+evt+'.csv');
+}
+//--- EXPORT CSV (end)
+// ---------------------------------------------------------------------
+
+
 // get the event code from the href (e.g. 20221009_cro)
 var l = document.location.href;
 l = l.split('/event/');
@@ -27,6 +70,13 @@ function init() {
 
     // html framework
     framework();
+
+    // Add Export CSV button
+    if ($('#export_csv').length === 0){
+        $('<button id="export_csv" style="margin:10px 0;padding:6px 14px;font-size:14px;">Export CSV</button>')
+            .prependTo('body')
+            .on('click', exportAllTables);
+    }
 
     for (var r in races) {
         races[r].urlStartlist = "https://prod.chronorace.be/api/results/xco/" + evt + "/registration/" + r;
@@ -198,7 +248,7 @@ function processData(r, data) {
                     cell.html(formatDuration(sectionDuration, true));
                 } else {
                     // If we do not yet have a duration (e.g. first chrono), show '-'
-                    cell.html('-');
+                    cell.html('');
                 }
 
                 // laptimes
