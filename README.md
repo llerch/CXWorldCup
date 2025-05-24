@@ -20,7 +20,7 @@ https://screenful.com/guide/how-to/how-to-open-the-browser-developer-console
 
 Step 4:
 Copy the script from the hyperlink below in the console and hit enter
-https://raw.githubusercontent.com/mullummer/CXWorldCup/refs/heads/main/app.js
+https://raw.githubusercontent.com/llerch/CXWorldCup/refs/heads/main/app.js
 You can close the console now
 
 Step 5:
